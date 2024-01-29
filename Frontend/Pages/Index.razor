@@ -1,0 +1,45 @@
+﻿@page "/"
+@using Microsoft.Identity.Abstractions
+@using Microsoft.Identity.Client
+@using Microsoft.Identity.Web
+@using System.Text.Json
+
+@inject MicrosoftIdentityConsentAndConditionalAccessHandler ConsentHandler
+@inject IDownstreamApi downstreamApi;
+
+<PageTitle>Index</PageTitle>
+
+<AuthorizeView Roles="admin">
+    <Authorized>
+        <p>You're an admin!</p>
+        <pre>@_content</pre>
+    </Authorized>
+    <NotAuthorized>
+        <p>You're not an admin.</p>
+    </NotAuthorized>
+</AuthorizeView>
+
+@code {
+    private string _content = string.Empty;
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {          
+            await CallApi();
+        }
+        catch (Exception ex)
+        {
+            ConsentHandler.HandleException(ex);
+        }
+    }
+
+    private async Task CallApi()
+    {
+        var response = await downstreamApi.CallApiForUserAsync("DownstreamApi", request =>
+        {
+            request.HttpMethod = HttpMethod.Get.ToString();
+            request.RelativePath = "roles/admin";
+        });
+        _content = await response.Content.ReadAsStringAsync();
+    }
+}
